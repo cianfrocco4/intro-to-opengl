@@ -6,6 +6,7 @@
 
 #include <HelloTriangle.h>
 #include <Shaders.h>
+#include <Textures.h>
 
 #include <tcShader.h>
 
@@ -24,7 +25,10 @@ int main()
     // Shaders::drawTriangleUsingShaderClass();
     // Shaders::drawUpsideDownTriangle();
     // Shaders::drawTriangleUniformOffset();
-    Shaders::drawTriangleColorByPosition();
+    // Shaders::drawTriangleColorByPosition();
+
+    /** Textures */
+    Textures::drawRectWithTexture();
 
     return 0;
 }

@@ -27,8 +27,12 @@ endif()
 # add_subdirectory(glad)
 include_directories( SYSTEM "glad/include" )
 
+# stb_image
+include_directories( SYSTEM "stb_image/include" )
+
+# Source code 
 include_directories( SYSTEM "learn-opengl/" )
 
-add_executable(${TARGET} main.cpp glad/src/glad.c)
+add_executable(${TARGET} main.cpp glad/src/glad.c stb_image/src/stb_image.cpp)
 
 target_link_libraries( ${TARGET} ${OPENGL_LIBRARIES} glfw )

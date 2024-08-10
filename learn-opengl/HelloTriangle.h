@@ -188,7 +188,7 @@ void drawTriangle()
 
 void drawRectangle()
 {
-        // glfw: initialize and configure
+    // glfw: initialize and configure
     // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
