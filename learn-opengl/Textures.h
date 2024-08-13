@@ -18,6 +18,8 @@ const unsigned int SCR_HEIGHT = 600;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 
+float grTexMixVal = 0.5f;
+
 GLFWwindow*
 initAndCreateGlfwWindow()
 {
@@ -62,6 +64,25 @@ setupVertexObjects(
         -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
         -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f // top left
     };
+
+    // Exercise 2
+    //  - Change the max texture coord to 2*pos-coord to result in 4 repeated textures
+    // float vertices[] = {
+    //     // positions      // colors         // texture coords
+    //     0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 2.0f, 2.0f, // top right
+    //     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 2.0f, 0.0f, // bottom right
+    //     -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+    //     -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 2.0f // top left
+    // };
+
+    // // Exercise 3
+    // float vertices[] = {
+    //     // positions          // colors           // texture coords (note that we changed them to 'zoom in' on our texture image)
+    //      0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f, // top right
+    //      0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.55f, 0.45f, // bottom right
+    //     -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.45f, 0.45f, // bottom left
+    //     -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.45f, 0.55f  // top left 
+    // };
 
     unsigned int indices[] = {  // note that we start from 0!
         0, 1, 3,  // first Triangle
@@ -129,6 +150,9 @@ renderLoop(
     // ------
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // Exercise 4
+    ourShader.setFloat("arTexMix", grTexMixVal);
 
     // render the triangle
     ourShader.use();
@@ -212,11 +236,21 @@ drawRectWithTexture()
     // openGL supports a minimum of 15 texture-units, sometimes more
     glActiveTexture(GL_TEXTURE0); // activate texture unit first
     glBindTexture(GL_TEXTURE_2D, texture1);
-    // set the texture wrapping/filtering options (on currently bound texture)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // // set the texture wrapping/filtering options (on currently bound texture)
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // BEGIN Exercise 3
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // note that we set the container wrapping method to GL_CLAMP_TO_EDGE
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // set texture filtering to nearest neighbor to clearly see the texels/pixels
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // END Exercise 3
+
     // load and generate the texture
     int width, height, nrChannels;
     unsigned char *data = stbi_load("../resources/container.jpg", &width, &height,
@@ -267,6 +301,9 @@ drawRectWithTexture()
     glUniform1i(glGetUniformLocation(ourShader.ID, "texture1"), 0); // manually
     ourShader.setInt("texture2", 1); // or with shader class
 
+    // Exercise 4
+    ourShader.setFloat("arTexMix", grTexMixVal);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -283,6 +320,16 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    else if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        grTexMixVal += 0.001;
+        grTexMixVal = std::min(grTexMixVal, 1.0f);
+    }
+    else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        grTexMixVal -= 0.001;
+        grTexMixVal = std::max(grTexMixVal, 0.0f);
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
