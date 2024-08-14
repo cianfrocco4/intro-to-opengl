@@ -7,6 +7,7 @@
 #include <HelloTriangle.h>
 #include <Shaders.h>
 #include <Textures.h>
+#include <Transformations.h>
 
 #include <tcShader.h>
 
@@ -28,7 +29,10 @@ int main()
     // Shaders::drawTriangleColorByPosition();
 
     /** Textures */
-    Textures::drawRectWithTexture();
+    // Textures::drawRectWithTexture();
+
+    /** Transformations */
+    Transformations::drawRectWithTransformation();
 
     return 0;
 }

@@ -30,6 +30,9 @@ include_directories( SYSTEM "glad/include" )
 # stb_image
 include_directories( SYSTEM "stb_image/include" )
 
+# GLM
+include_directories( SYSTEM "glm/" )
+
 # Source code 
 include_directories( SYSTEM "learn-opengl/" )
 
