@@ -8,6 +8,7 @@
 #include <Shaders.h>
 #include <Textures.h>
 #include <Transformations.h>
+#include <CoordinateSystems.h>
 
 #include <tcShader.h>
 
@@ -32,7 +33,10 @@ int main()
     // Textures::drawRectWithTexture();
 
     /** Transformations */
-    Transformations::drawRectWithTransformation();
+    // Transformations::drawRectWithTransformation();
+
+    /** Coordinate Systems */
+    CoordinateSystems::drawRect3D();
 
     return 0;
 }

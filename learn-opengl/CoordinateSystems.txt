@@ -1,0 +1,42 @@
+/**
+ * NOTES:
+ * 
+ * OpenGL expects all the vertices, that we want to become visible, to
+ * be in normalized device coordinates after each vertex shader run. That is, the x, y and z coordinates
+ * of each vertex should be between -1.0 and 1.0; coordinates outside this range will not be visible.
+ * What we usually do, is specify the coordinates in a range (or space) we determine ourselves and in
+ * the vertex shader transform these coordinates to normalized device coordinates (NDC). These NDC
+ * are then given to the rasterizer to transform them to 2D coordinates/pixels on your screen.
+ * 
+ * Transforming coordinates to NDC is usually accomplished in a step-by-step fashion where we
+ * transform an object’s vertices to several coordinate systems before finally transforming them to
+ * NDC.
+ * 
+ * Coordinate systems:
+ *   1. Local space (or Object space)
+ *   2. World space
+ *   3. View space (or Eye space)
+ *   4. Clip space
+ *   5. Screen space
+ * 
+ * 1. Local coordinates are the coordinates of your object relative to its local origin; they’re the
+ * coordinates your object begins in.
+ * 2. The next step is to transform the local coordinates to world-space coordinates which are
+ * coordinates in respect of a larger world. These coordinates are relative to some global origin
+ * of the world, together with many other objects also placed relative to this world’s origin.
+ * 3. Next we transform the world coordinates to view-space coordinates in such a way that each
+ * coordinate is as seen from the camera or viewer’s point of view.
+ * 4. After the coordinates are in view space we want to project them to clip coordinates. Clip
+ * coordinates are processed to the -1.0 and 1.0 range and determine which vertices will end
+ * up on the screen. Projection to clip-space coordinates can add perspective if using perspective
+ * projection.
+ * 5. And lastly we transform the clip coordinates to screen coordinates in a process we call
+ * viewport transform that transforms the coordinates from -1.0 and 1.0 to the coordinate
+ * range defined by glViewport. The resulting coordinates are then sent to the rasterizer to
+ * turn them into fragments.
+ * 
+ * Local Space --> World Space  ==> Model Matrix
+ * World Space --> View Space   ==> View Matrix 
+ * View Space  --> Clip Space   ==> Projection Matrix
+ * Clip Space  --> Screen Space ==> Viewport Transform
+ */
