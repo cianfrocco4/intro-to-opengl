@@ -35,6 +35,8 @@ include_directories( SYSTEM "glm/" )
 
 # Source code 
 include_directories( SYSTEM "learn-opengl/" )
+include_directories( SYSTEM "lighting/" )
+
 
 add_executable(${TARGET} main.cpp glad/src/glad.c stb_image/src/stb_image.cpp)
 
