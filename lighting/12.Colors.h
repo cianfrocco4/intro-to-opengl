@@ -23,6 +23,10 @@ namespace Colors
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+// global light position
+// glm::vec3 gcLightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 gcLightPos(0.0f, 0.0f, 2.0f);
+
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
@@ -69,14 +73,38 @@ CreateAndSetupGlfwWindow()
     return window;
 }
 
+void
+InitGlad()
+{
+    // glad: load all OpenGL function pointers
+    // ---------------------------------------
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return;
+    }
+}
+
 std::shared_ptr<Shader> 
 CreateShader()
 {
     // build and compile our shader program
     // ------------------------------------
     // NOTE [AFC]: using "triangle" shader but will work for rect too
-    const auto lcVertexShaderPath = "../shaders/6.1.coordinate-systems.vert";
-    const auto lcFragmentShaderPath = "../shaders/6.1.coordinate-systems.frag";
+    const auto lcVertexShaderPath = "../shaders/12.1-lighting.vert";
+    const auto lcFragmentShaderPath = "../shaders/12.1-lighting.frag";
+
+    return std::make_shared<Shader>(lcVertexShaderPath, lcFragmentShaderPath);
+}
+
+std::shared_ptr<Shader> 
+CreateLightSrcShader()
+{
+    // build and compile our shader program
+    // ------------------------------------
+    // NOTE [AFC]: using "triangle" shader but will work for rect too
+    const auto lcVertexShaderPath = "../shaders/12.1-lighting.vert";
+    const auto lcFragmentShaderPath = "../shaders/12.1-lightSource.frag";
 
     return std::make_shared<Shader>(lcVertexShaderPath, lcFragmentShaderPath);
 }
@@ -84,19 +112,18 @@ CreateShader()
 tsVertexObject
 CreateAndSetupVertexObjects()
 {
-    std::cout << "1.0" << std::endl;
     // Init the objects
-    unsigned int lnVao, lnVbo, lnEbo;
+    unsigned int lnVao, lnLightVao, lnVbo, lnEbo;
     glGenVertexArrays(1, &lnVao);
+    glGenVertexArrays(1, &lnLightVao);
     glGenBuffers(1, &lnVbo);
     glGenBuffers(1, &lnEbo);
-    std::cout << "1.1" << std::endl;
 
     tsVertexObject lsVertexObject;
     lsVertexObject.mnVaoId = lnVao;
+    lsVertexObject.mnLightVaoId = lnLightVao;
     lsVertexObject.mnVboId = lnVbo;
     lsVertexObject.mnEboId = lnEbo;
-    std::cout << "1.2" << std::endl;
 
     // Enable depth testing 
     glEnable(GL_DEPTH_TEST);
@@ -179,6 +206,21 @@ CreateAndSetupVertexObjects()
         (void*)((lnPosAttrBufferWidth) * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    // Light VAO
+    glBindVertexArray(lsVertexObject.mnLightVaoId);
+    // we only need to bind to the VBO, the container’s VBO’s data
+    // already contains the data.
+    glBindBuffer(GL_ARRAY_BUFFER, lsVertexObject.mnVboId);
+    // set the vertex attribute
+    glVertexAttribPointer(
+        0, 
+        3, 
+        GL_FLOAT, 
+        GL_FALSE, 
+        3 * sizeof(float),
+        (void*)0);
+    glEnableVertexAttribArray(0);
+
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     // glBindVertexArray(0);
@@ -252,8 +294,8 @@ CreateAndSetupTextures(std::shared_ptr<Shader> apcShader)
     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
     // -------------------------------------------------------------------------------------------
     apcShader->use(); 
-    apcShader->setInt("texture1", 0);
-    apcShader->setInt("texture2", 1);
+    apcShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    apcShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
     return std::vector<unsigned int>(texture1, texture2);
 }
@@ -263,20 +305,11 @@ RenderLoop(
     GLFWwindow* apcWindow,
     const tsVertexObject& arsVertexObj,
     std::shared_ptr<Shader> apcShader,
+    std::shared_ptr<Shader> apcLightSourceShader,
     const std::vector<unsigned int>& arcTextures)
 {
-    static const glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f, 0.0f, 0.0f),
-        glm::vec3( 2.0f, 5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3( 2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f, 3.0f, -7.5f),
-        glm::vec3( 1.3f, -2.0f, -2.5f),
-        glm::vec3( 1.5f, 2.0f, -2.5f),
-        glm::vec3( 1.5f, 0.2f, -1.5f),
-        glm::vec3(-1.3f, 1.0f, -1.5f)
-    };
+    std::vector<glm::vec3> cubePositions;
+    cubePositions.push_back(glm::vec3(-1.5f, -1.0f, -2.5f));
 
     // input
     // -----
@@ -306,15 +339,7 @@ RenderLoop(
     glm::mat4 view          = glm::mat4(1.0f);
     glm::mat4 projection    = glm::mat4(1.0f);
 
-    // model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    // Rotate the cube over time
-    // model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-
     view  = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-    // Exercise 2
-    // view  = glm::translate(view, glm::vec3(0.0f, -1.0f, -5.0f));
-    // view = glm::rotate(view, glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     // retrieve the matrix uniform locations
@@ -334,26 +359,33 @@ RenderLoop(
     // Draw all 36 triangles for the cube
     // glDrawArrays(GL_TRIANGLES, 0, 36);
 
-    // Draw 10 of the same cube at different locations within the view
-    for(unsigned int i = 0; i < 10; i++)
+    // Draw cubes
+    for(unsigned int i = 0; i < cubePositions.size(); i++)
     {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, cubePositions[i]);
 
-        // Exercise 3: only rotate the 3rd cube over time, rest static
-        if(i == 3)
-        {
-            model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-        }
-        else
-        {
-            float angle = 20.0f * i;
-            model = glm::rotate(model, glm::radians(angle),
-                glm::vec3(1.0f, 0.3f, 0.5f));
-        }
+        float angle = 20.0f * i;
+        model = glm::rotate(model, glm::radians(angle),
+            glm::vec3(1.0f, 0.3f, 0.5f));
+
         apcShader->setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+
+    // Draw light source VAO
+    glBindVertexArray(arsVertexObj.mnLightVaoId);
+    apcLightSourceShader->use();
+    apcLightSourceShader->setMat4("projection", projection);
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, gcLightPos);
+
+    float angle = 20.0f;
+    model = glm::rotate(model, glm::radians(angle),
+    glm::vec3(1.0f, 0.3f, 0.5f));
+
+    apcLightSourceShader->setMat4("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
@@ -367,6 +399,7 @@ CleanUp(const tsVertexObject& arsVertexObject)
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &arsVertexObject.mnVaoId);
+    glDeleteVertexArrays(1, &arsVertexObject.mnLightVaoId);
     glDeleteBuffers(1, &arsVertexObject.mnVboId);
     glDeleteBuffers(1, &arsVertexObject.mnEboId);
 
@@ -379,17 +412,16 @@ void
 drawSceneWithLight()
 {
     auto* lpcWindow = CreateAndSetupGlfwWindow();
-    std::cout << "1" << std::endl;
+    InitGlad();
     auto lpcShader = CreateShader();
-    std::cout << "2" << std::endl;
+    auto lpcLightSrcShader = CreateLightSrcShader();
+
     auto lsVertexObj = CreateAndSetupVertexObjects();
-    std::cout << "3" << std::endl;
     auto lcTextures = CreateAndSetupTextures(lpcShader);
-    std::cout << "4" << std::endl;
 
     while (!glfwWindowShouldClose(lpcWindow))
     {
-        RenderLoop(lpcWindow, lsVertexObj, lpcShader, lcTextures);
+        RenderLoop(lpcWindow, lsVertexObj, lpcShader, lpcLightSrcShader, lcTextures);
     }
     
     CleanUp(lsVertexObj);

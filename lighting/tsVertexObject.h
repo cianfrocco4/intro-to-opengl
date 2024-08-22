@@ -4,6 +4,7 @@
 struct tsVertexObject
 {
     unsigned int mnVaoId;
+    unsigned int mnLightVaoId;
     unsigned int mnVboId;
     unsigned int mnEboId;
 };

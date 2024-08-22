@@ -4,11 +4,16 @@
 #include <iostream>
 #include <cmath>
 
+// LearnOpenGL
 #include <HelloTriangle.h>
 #include <Shaders.h>
 #include <Textures.h>
 #include <Transformations.h>
 #include <CoordinateSystems.h>
+#include <tcCamera.h>
+
+// Lighting
+#include <12.Colors.h>
 
 #include <tcShader.h>
 
@@ -36,7 +41,14 @@ int main()
     // Transformations::drawRectWithTransformation();
 
     /** Coordinate Systems */
-    CoordinateSystems::drawRect3D();
+    // CoordinateSystems::drawRect3D();
+
+    /** Camera */
+    // NOTE: deleted on accident
+    // Camera::drawRectWithCamera();
+
+    /** Colors */
+    Colors::drawSceneWithLight();
 
     return 0;
 }
